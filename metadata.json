@@ -1,0 +1,8 @@
+{
+  "name": "基礎版 wacare",
+  "description": "可以透過這個app畫面來調整開發",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
