@@ -22,7 +22,7 @@ export function App() {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     nickname: '陳小明',
     realName: '陳小明',
-    birthday: '1985-06-15',
+    birthday: '1977-06-15',
     gender: '男',
     idNumber: 'A123456789',
     phone: '0912345678',
@@ -152,6 +152,7 @@ export function App() {
             <HealthDataScreen
               onNavigate={setCurrentScreen}
               nickname={userProfile.nickname}
+              userProfile={userProfile}
             />
           )}
 

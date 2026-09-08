@@ -17,7 +17,7 @@ import {
   FileText,
   UserCheck
 } from 'lucide-react';
-import { ScreenId } from '../types';
+import { ScreenId, UserProfile } from '../types';
 import { BottomNavBar } from './BottomNavBar';
 import { BloodPressureDetailScreen } from './heartCare/BloodPressureDetailScreen';
 import { OxygenDetailScreen } from './heartCare/OxygenDetailScreen';
@@ -26,10 +26,12 @@ import { RespiratoryRateDetailScreen } from './heartCare/RespiratoryRateDetailSc
 import { TemperatureDetailScreen } from './heartCare/TemperatureDetailScreen';
 import { RiskPredictionDetailScreen, SavedPreventRecord } from './heartCare/RiskPredictionDetailScreen';
 import { HeartCareState, INITIAL_HEART_CARE_STATE } from './heartCare/heartCareData';
+import { DEFAULT_OLD_LAB_RECORD, LabDataHomeScreen, LabRecord } from './LabDataHomeScreen';
 
 interface Props {
   onNavigate: (screen: ScreenId) => void;
   nickname?: string;
+  userProfile?: UserProfile;
 }
 
 const WheelColumn: React.FC<{
@@ -104,7 +106,7 @@ const WheelColumn: React.FC<{
   );
 };
 
-export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳小明' }) => {
+export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳小明', userProfile }) => {
   const [activeTab, setActiveTab] = useState<'my' | 'family'>('my');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -133,6 +135,8 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
   const [showRespiratoryRateScreen, setShowRespiratoryRateScreen] = useState(false);
   const [showTemperatureScreen, setShowTemperatureScreen] = useState(false);
   const [showRiskPredictionScreen, setShowRiskPredictionScreen] = useState(false);
+  const [showLabDataScreen, setShowLabDataScreen] = useState(false);
+  const [labRecords, setLabRecords] = useState<LabRecord[]>(() => [{ ...DEFAULT_OLD_LAB_RECORD, data: { ...DEFAULT_OLD_LAB_RECORD.data } }]);
   // DEMO ONLY：由健康數據父層暫存，讓使用者往返子頁時紀錄不消失；重新整理後仍恢復預設。
   const [riskPredictionRecords, setRiskPredictionRecords] = useState<SavedPreventRecord[]>([]);
   const [heartCareState, setHeartCareState] = useState<HeartCareState>({
@@ -180,6 +184,10 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
     newDate.setDate(newDate.getDate() + 1);
     setCurrentDate(newDate);
   };
+
+  if (showLabDataScreen) {
+    return <LabDataHomeScreen onBack={() => setShowLabDataScreen(false)} records={labRecords} onRecordsChange={setLabRecords} />;
+  }
 
   if (showBloodPressureScreen) {
     return (
@@ -288,6 +296,8 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
         onBack={() => setShowRiskPredictionScreen(false)}
         records={riskPredictionRecords}
         onRecordsChange={setRiskPredictionRecords}
+        labRecords={labRecords}
+        userProfile={userProfile}
       />
     );
   }
@@ -547,7 +557,17 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
                 </div>
               </div>
 
-              {/* 8. 體重 (MOVED) */}
+              {/* 8. 檢驗燈 */}
+              <button
+                type="button"
+                onClick={() => setShowLabDataScreen(true)}
+                className="w-full flex items-center justify-between px-4 py-3 min-h-[3.75rem] hover:bg-slate-50 transition-colors text-left cursor-pointer active:scale-99 focus:outline-none focus:ring-2 focus:ring-orange-500 border-t border-slate-100"
+              >
+                <span className="font-black text-slate-900 text-[1rem]">檢驗燈</span>
+                <span className="min-w-[48px] min-h-[48px] flex items-center justify-center text-slate-500"><ChevronRight className="w-[1.5rem] h-[1.5rem]" /></span>
+              </button>
+
+              {/* 9. 體重 (MOVED) */}
               <div
                 onClick={() => setShowWeightScreen(true)}
                 className="flex items-center justify-between px-4 py-3 min-h-[3.75rem] hover:bg-slate-50 transition-colors cursor-pointer"

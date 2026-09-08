@@ -1,11 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X, LockKeyhole, HeartPulse, ClipboardList, CalendarDays } from 'lucide-react';
 import { calculatePrevent, PreventInput, PreventResult } from './preventCalculator';
+import type { LabRecord } from '../LabDataHomeScreen';
+import type { UserProfile } from '../../types';
 
 interface Props {
   onBack: () => void;
   records: SavedPreventRecord[];
   onRecordsChange: React.Dispatch<React.SetStateAction<SavedPreventRecord[]>>;
+  labRecords?: LabRecord[];
+  userProfile?: UserProfile;
 }
 type View = 'records' | 'form' | 'result';
 
@@ -27,6 +31,17 @@ const emptyInput: FormInput = {
   sex: '', age: '', tc: '', hdl: '', sbp: '', bmi: '', creatinine: '',
   dm: '', smoking: '', bptreat: '', statin: '',
 };
+
+export function calculateAge(birthday: string, referenceDate = new Date()): number {
+  const birthDate = new Date(`${birthday}T00:00:00`);
+  if (Number.isNaN(birthDate.getTime())) return 0;
+  let age = referenceDate.getFullYear() - birthDate.getFullYear();
+  const birthdayHasPassed = referenceDate.getMonth() > birthDate.getMonth() ||
+    (referenceDate.getMonth() === birthDate.getMonth() && referenceDate.getDate() >= birthDate.getDate());
+  if (!birthdayHasPassed) age -= 1;
+  return age;
+}
+const mapGenderToPreventSex = (gender?: string): '' | 0 | 1 => gender === '男' || gender === '男性' ? 0 : gender === '女' || gender === '女性' ? 1 : '';
 
 const ranges = {
   age: [30, 79], tc: [130, 320], hdl: [20, 100], sbp: [90, 200],
@@ -88,14 +103,33 @@ function Header({ title, onBack, action }: { title: string; onBack: () => void; 
   </header>;
 }
 
-export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, onRecordsChange }) => {
+export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, onRecordsChange, labRecords = [], userProfile }) => {
   const [view, setView] = useState<View>('records');
   const [showModuleMenu, setShowModuleMenu] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [input, setInput] = useState<FormInput>(emptyInput);
+  const [input, setInput] = useState<FormInput>(() => ({
+    ...emptyInput,
+    sex: userProfile?.gender === '男' ? 0 : userProfile?.gender === '女' ? 1 : '',
+    age: userProfile?.birthday ? String(calculateAge(userProfile.birthday)) : '',
+  }));
   const [submittedInput, setSubmittedInput] = useState<PreventInput | null>(null);
   const [result, setResult] = useState<PreventResult | null>(null);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  useEffect(() => {
+    if (view !== 'form' || labRecords.length === 0) return;
+    const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 3);
+    const parseDate = (value: string) => { const date = new Date(value.replace(/\//g, '-')); return Number.isNaN(date.getTime()) ? null : date; };
+    const valid = labRecords.map((record) => ({ record, date: parseDate(record.date) })).filter(({ date }) => date && date <= new Date() && date >= cutoff).sort((a, b) => b.date!.getTime() - a.date!.getTime());
+    const find = (...keys: string[]) => valid.map(({ record, date }) => ({ value: keys.map((key) => record.data[key]).find((value) => value !== undefined && value !== ''), date })).find(({ value }) => { const n = Number(value); return Number.isFinite(n) && n > 0; });
+    setInput((current) => {
+      const next = { ...current };
+      const assign = (name: keyof FormInput, keys: string[], min: number, max: number) => { if (next[name] !== '') return; const found = find(...keys); const n = Number(found?.value); if (Number.isFinite(n) && n >= min && n <= max) next[name] = String(n); };
+      assign('tc', ['CHOL', 'TC', 'tc'], 130, 320); assign('hdl', ['HDL_C', 'HLD_C', 'HDL-C', 'hdl'], 20, 100); assign('creatinine', ['CREA', 'creatinine', 'Scr'], 0.1, 15); assign('sbp', ['SBP', 'sbp'], 90, 200);
+      const bmi = find('BMI', 'bmi'); if (next.bmi === '' && bmi) next.bmi = String(Number(bmi.value).toFixed(1));
+      if (next.bmi === '') { const height = find('height'); const weight = find('weight'); const h = Number(height?.value); const w = Number(weight?.value); if (h > 0 && w > 0) { const value = w / Math.pow(h / 100, 2); if (value >= 18.5 && value <= 39.9) next.bmi = value.toFixed(1); } }
+      return next;
+    });
+  }, [view, labRecords]);
   const update = (name: keyof FormInput, value: string | number) => setInput((prev) => ({ ...prev, [name]: value }));
   const valid = Object.entries(ranges).every(([key, [min, max]]) => {
     const raw = input[key as keyof typeof ranges];
@@ -130,7 +164,7 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
           <Field label="高密度脂蛋白 HDL" name="hdl" value={input.hdl} min={20} max={100} step={0.1} unit="mg/dL" onChange={update} />
           <Field label="收縮壓 SBP" name="sbp" value={input.sbp} min={90} max={200} unit="mmHg" onChange={update} />
           <Field label="身體質量指數 BMI" name="bmi" value={input.bmi} min={18.5} max={39.9} step={0.1} unit="kg/m²" onChange={update} />
-          <Field label="血清肌酐 Scr" name="creatinine" value={input.creatinine} min={0.1} max={15} step={0.01} unit="mg/dL" onChange={update} />
+          <Field label="肌酸酐 CREA" name="creatinine" value={input.creatinine} min={0.1} max={15} step={0.01} unit="mg/dL" onChange={update} />
           <YesNo label="糖尿病史" name="dm" value={input.dm} onChange={update} />
           <YesNo label="目前吸菸" name="smoking" value={input.smoking} onChange={update} />
           <YesNo label="高血壓治療中" name="bptreat" value={input.bptreat} onChange={update} />
@@ -173,7 +207,7 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
       ['性別', submittedInput.sex === 1 ? '女性' : '男性'], ['年齡', `${submittedInput.age} 歲`],
       ['總膽固醇 TC', `${submittedInput.tc} mg/dL`], ['高密度脂蛋白 HDL', `${submittedInput.hdl} mg/dL`],
       ['收縮壓 SBP', `${submittedInput.sbp} mmHg`], ['身體質量指數 BMI', `${submittedInput.bmi} kg/m²`],
-      ['血清肌酐 Scr', `${submittedInput.creatinine} mg/dL`], ['糖尿病史', submittedInput.dm ? '有' : '無'],
+      ['肌酸酐 CREA', `${submittedInput.creatinine} mg/dL`], ['糖尿病史', submittedInput.dm ? '有' : '無'],
       ['目前吸菸', submittedInput.smoking ? '是' : '否'], ['高血壓治療中', submittedInput.bptreat ? '是' : '否'],
       ['使用降血脂 statin', submittedInput.statin ? '是' : '否'],
     ];
@@ -190,7 +224,7 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
           <div className="flex items-center justify-between p-4"><div className="flex items-center gap-3"><HeartPulse className="text-[var(--text-brand-default)]" size={24} /><h2 className="text-[18px] font-bold">總體風險評估</h2></div><ChevronDown className="text-[var(--text-base-tertiary)]" size={20} /></div>
           <p className="px-4 pb-4 text-[14px] font-bold text-[var(--text-brand-default)]">使用的 eGFR：{result.egfr.toFixed(1)} mL/min/1.73m²</p>
           <div className="grid grid-cols-[1.65fr_1fr_1fr] border-t border-[var(--border-base-tertiary)] text-[12px]">{cells.map((cell, i) => <div key={i} className={`flex min-h-12 items-center border-b border-r border-[var(--border-base-tertiary)] p-2 ${i < 3 ? 'justify-center bg-[var(--bg-brand-default)] font-bold text-[var(--text-brand-on)]' : i % 3 === 0 ? 'bg-[var(--bg-base-secondary)] font-bold' : 'justify-center font-bold text-[var(--text-brand-default)]'}`}>{cell}</div>)}</div>
-          <p className="p-4 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">30 年風險僅適用於 30–59 歲；N/A 代表不在適用年齡。eGFR 由血清肌酐依 2021 CKD‑EPI 公式推算。</p>
+          <p className="p-4 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">30 年風險僅適用於 30–59 歲；N/A 代表不在適用年齡。eGFR 由肌酸酐依 2021 CKD‑EPI 公式推算。</p>
         </section>
         <section className="space-y-4 bg-[var(--bg-base-default)] p-4">
           <div className="flex items-center justify-between"><div className="flex items-center gap-3"><ClipboardList className="text-[var(--text-brand-default)]" size={24} /><h2 className="text-[18px] font-bold">個人化健康報告</h2></div><ChevronDown className="text-[var(--text-base-tertiary)]" size={20} /></div>
@@ -230,7 +264,7 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
     {showModuleMenu && <div className="absolute inset-0 z-50 flex items-end bg-[var(--bg-scrim)]" onClick={() => setShowModuleMenu(false)}><div className="w-full rounded-t-[16px] bg-[var(--bg-base-default)] p-4 pb-6 shadow-[var(--shadow-lg-up)]" onClick={(e) => e.stopPropagation()}>
       <div className="mb-4 flex items-center justify-between"><h2 className="text-[18px] font-bold">選擇風險預測模組</h2><button onClick={() => setShowModuleMenu(false)} className="flex h-10 w-10 items-center justify-center"><X size={24} /></button></div>
       <div aria-disabled="true" className="mb-2 flex min-h-16 items-center gap-3 rounded-[12px] border border-[var(--border-disabled)] bg-[var(--bg-disabled)] p-3 text-[var(--text-disabled)]"><LockKeyhole size={20} /><div><p className="text-[16px] font-bold">DCSI 糖尿病風險預測</p><p className="text-[12px]">此功能目前無法使用</p></div></div>
-      <button onClick={() => { setInput(emptyInput); setResult(null); setSubmittedInput(null); setSubmittedAt(null); setShowModuleMenu(false); setView('form'); }} className="flex min-h-16 w-full items-center gap-3 rounded-[12px] border border-[var(--border-brand-tertiary)] bg-[var(--bg-brand-tertiary)] p-3 text-left"><HeartPulse className="text-[var(--text-brand-default)]" size={20} /><div className="flex-1"><p className="text-[16px] font-bold text-[var(--text-brand-on-tertiary)]">10 年心血管高風險預測模組</p><p className="text-[12px] text-[var(--text-base-secondary)]">AHA PREVENT 心血管疾病風險試算</p></div><ChevronRight className="text-[var(--text-brand-default)]" size={20} /></button>
+      <button onClick={() => { setInput({ ...emptyInput, sex: mapGenderToPreventSex(userProfile?.gender), age: userProfile?.birthday ? String(calculateAge(userProfile.birthday)) : '' }); setResult(null); setSubmittedInput(null); setSubmittedAt(null); setShowModuleMenu(false); setView('form'); }} className="flex min-h-16 w-full items-center gap-3 rounded-[12px] border border-[var(--border-brand-tertiary)] bg-[var(--bg-brand-tertiary)] p-3 text-left"><HeartPulse className="text-[var(--text-brand-default)]" size={20} /><div className="flex-1"><p className="text-[16px] font-bold text-[var(--text-brand-on-tertiary)]">10 年心血管高風險預測模組</p><p className="text-[12px] text-[var(--text-base-secondary)]">AHA PREVENT 心血管疾病風險試算</p></div><ChevronRight className="text-[var(--text-brand-default)]" size={20} /></button>
     </div></div>}
   </div>;
 };
