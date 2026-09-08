@@ -557,13 +557,13 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
                 </div>
               </div>
 
-              {/* 8. 檢驗燈 */}
+              {/* 8. 檢驗 */}
               <button
                 type="button"
                 onClick={() => setShowLabDataScreen(true)}
                 className="w-full flex items-center justify-between px-4 py-3 min-h-[3.75rem] hover:bg-slate-50 transition-colors text-left cursor-pointer active:scale-99 focus:outline-none focus:ring-2 focus:ring-orange-500 border-t border-slate-100"
               >
-                <span className="font-black text-slate-900 text-[1rem]">檢驗燈</span>
+                <span className="font-black text-slate-900 text-[1rem]">檢驗</span>
                 <span className="min-w-[48px] min-h-[48px] flex items-center justify-center text-slate-500"><ChevronRight className="w-[1.5rem] h-[1.5rem]" /></span>
               </button>
 
