@@ -9,9 +9,17 @@ interface Props {
   records: SavedPreventRecord[];
   onRecordsChange: React.Dispatch<React.SetStateAction<SavedPreventRecord[]>>;
   labRecords?: LabRecord[];
+  medicalVisitRecords?: MedicalVisitRecord[];
   userProfile?: UserProfile;
 }
 type View = 'records' | 'form' | 'result';
+
+export interface MedicalVisitRecord {
+  id?: string;
+  date: string;
+  createdAt?: number;
+  data: Record<string, string | number | boolean | null | undefined>;
+}
 
 export interface SavedPreventRecord {
   id: string;
@@ -103,7 +111,7 @@ function Header({ title, onBack, action }: { title: string; onBack: () => void; 
   </header>;
 }
 
-export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, onRecordsChange, labRecords = [], userProfile }) => {
+export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, onRecordsChange, labRecords = [], medicalVisitRecords = [], userProfile }) => {
   const [view, setView] = useState<View>('records');
   const [showModuleMenu, setShowModuleMenu] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -116,20 +124,46 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
   const [result, setResult] = useState<PreventResult | null>(null);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   useEffect(() => {
-    if (view !== 'form' || labRecords.length === 0) return;
+    if (view !== 'form' || (labRecords.length === 0 && medicalVisitRecords.length === 0)) return;
     const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 3);
-    const parseDate = (value: string) => { const date = new Date(value.replace(/\//g, '-')); return Number.isNaN(date.getTime()) ? null : date; };
-    const valid = labRecords.map((record) => ({ record, date: parseDate(record.date) })).filter(({ date }) => date && date <= new Date() && date >= cutoff).sort((a, b) => b.date!.getTime() - a.date!.getTime());
-    const find = (...keys: string[]) => valid.map(({ record, date }) => ({ value: keys.map((key) => record.data[key]).find((value) => value !== undefined && value !== ''), date })).find(({ value }) => { const n = Number(value); return Number.isFinite(n) && n > 0; });
+    const parseDate = (value: string, createdAt?: number) => {
+      const match = value.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
+      if (match) {
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] ?? 0), Number(match[5] ?? 0));
+        if (!Number.isNaN(date.getTime())) return date;
+      }
+      if (createdAt !== undefined) { const createdDate = new Date(createdAt); if (!Number.isNaN(createdDate.getTime())) return createdDate; }
+      return null;
+    };
+    const sources = [...labRecords, ...medicalVisitRecords];
+    const validSources = sources.map((record) => ({ record, date: parseDate(record.date, record.createdAt) }))
+      .filter(({ date }) => date && date <= new Date() && date >= cutoff)
+      .sort((a, b) => b.date!.getTime() - a.date!.getTime() || (b.record.createdAt ?? 0) - (a.record.createdAt ?? 0));
+    const find = (...keys: string[]) => validSources.map(({ record, date }) => ({ value: keys.map((key) => record.data[key]).find((value) => value !== undefined && value !== null && value !== ''), date }))
+      .find(({ value }) => value !== undefined);
+    const toBinary = (value: unknown): 0 | 1 | null => {
+      if (value === true || value === 1) return 1;
+      if (value === false || value === 0) return 0;
+      if (typeof value !== 'string') return null;
+      const normalized = value.trim().toLowerCase();
+      if (['1', '是', '有', 'yes', 'true'].includes(normalized)) return 1;
+      if (['0', '否', '無', 'no', 'false'].includes(normalized)) return 0;
+      return null;
+    };
     setInput((current) => {
       const next = { ...current };
       const assign = (name: keyof FormInput, keys: string[], min: number, max: number) => { if (next[name] !== '') return; const found = find(...keys); const n = Number(found?.value); if (Number.isFinite(n) && n >= min && n <= max) next[name] = String(n); };
       assign('tc', ['CHOL', 'TC', 'tc'], 130, 320); assign('hdl', ['HDL_C', 'HLD_C', 'HDL-C', 'hdl'], 20, 100); assign('creatinine', ['CREA', 'creatinine', 'Scr'], 0.1, 15); assign('sbp', ['SBP', 'sbp'], 90, 200);
       const bmi = find('BMI', 'bmi'); if (next.bmi === '' && bmi) next.bmi = String(Number(bmi.value).toFixed(1));
       if (next.bmi === '') { const height = find('height'); const weight = find('weight'); const h = Number(height?.value); const w = Number(weight?.value); if (h > 0 && w > 0) { const value = w / Math.pow(h / 100, 2); if (value >= 18.5 && value <= 39.9) next.bmi = value.toFixed(1); } }
+      const assignBinary = (name: 'dm' | 'smoking' | 'bptreat' | 'statin', keys: string[]) => { if (next[name] !== '') return; const value = toBinary(find(...keys)?.value); if (value !== null) next[name] = value; };
+      assignBinary('dm', ['dm', 'diabetes', 'diabetesHistory', '糖尿病史']);
+      assignBinary('smoking', ['smoking', 'currentSmoking', '目前吸菸']);
+      assignBinary('bptreat', ['bptreat', 'hypertensionTreatment', 'antihypertensive', '高血壓治療中']);
+      assignBinary('statin', ['statin', 'statinUse', 'lipidLoweringTreatment', '使用降血脂statin']);
       return next;
     });
-  }, [view, labRecords]);
+  }, [view, labRecords, medicalVisitRecords]);
   const update = (name: keyof FormInput, value: string | number) => setInput((prev) => ({ ...prev, [name]: value }));
   const valid = Object.entries(ranges).every(([key, [min, max]]) => {
     const raw = input[key as keyof typeof ranges];

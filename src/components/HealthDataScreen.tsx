@@ -24,7 +24,7 @@ import { OxygenDetailScreen } from './heartCare/OxygenDetailScreen';
 import { WeightDetailScreen } from './heartCare/WeightDetailScreen';
 import { RespiratoryRateDetailScreen } from './heartCare/RespiratoryRateDetailScreen';
 import { TemperatureDetailScreen } from './heartCare/TemperatureDetailScreen';
-import { RiskPredictionDetailScreen, SavedPreventRecord } from './heartCare/RiskPredictionDetailScreen';
+import { MedicalVisitRecord, RiskPredictionDetailScreen, SavedPreventRecord } from './heartCare/RiskPredictionDetailScreen';
 import { HeartCareState, INITIAL_HEART_CARE_STATE } from './heartCare/heartCareData';
 import { DEFAULT_OLD_LAB_RECORD, LabDataHomeScreen, LabRecord } from './LabDataHomeScreen';
 
@@ -32,6 +32,7 @@ interface Props {
   onNavigate: (screen: ScreenId) => void;
   nickname?: string;
   userProfile?: UserProfile;
+  medicalVisitRecords?: MedicalVisitRecord[];
 }
 
 const WheelColumn: React.FC<{
@@ -106,7 +107,7 @@ const WheelColumn: React.FC<{
   );
 };
 
-export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳小明', userProfile }) => {
+export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳小明', userProfile, medicalVisitRecords = [] }) => {
   const [activeTab, setActiveTab] = useState<'my' | 'family'>('my');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -297,6 +298,7 @@ export const HealthDataScreen: React.FC<Props> = ({ onNavigate, nickname = '陳�
         records={riskPredictionRecords}
         onRecordsChange={setRiskPredictionRecords}
         labRecords={labRecords}
+        medicalVisitRecords={medicalVisitRecords}
         userProfile={userProfile}
       />
     );
