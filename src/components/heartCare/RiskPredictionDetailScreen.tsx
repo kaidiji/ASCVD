@@ -237,6 +237,20 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
           <div><h3 className="mb-2 text-[16px] font-bold">健康建議</h3>{factors.length ? <div className="space-y-2">{factors.map((factor) => <div key={factor} className="rounded-[8px] border-l-4 border-[var(--border-brand-default)] bg-[var(--bg-brand-tertiary)] p-3"><p className="text-[14px] font-bold text-[var(--text-brand-on-tertiary)]">{factor}</p><p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">建議以規律運動、均衡飲食與定期追蹤逐步改善，並與醫師討論適合您的個人目標。</p></div>)}</div> : <div className="rounded-[8px] bg-[var(--bg-positive-tertiary)] p-3 text-[14px] text-[var(--text-positive-on-tertiary)]">目前主要風險因子控制良好，請繼續維持健康生活型態。</div>}</div>
           <p className="text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">本報告由規則式邏輯自動產生，僅供衛教參考，不構成醫療診斷或治療建議。</p>
         </section>
+        <section aria-labelledby="cardiovascular-references" className="bg-[var(--bg-base-secondary)] px-4 py-5">
+          <h2 id="cardiovascular-references" className="text-[14px] font-bold text-[var(--text-base-secondary)]">Reference</h2>
+          <ol className="mt-3 list-decimal space-y-3 pl-5 text-[12px] leading-[1.6] text-[var(--text-base-secondary)]">
+            <li>
+              D&apos;Agostino, R. B., Sr., Vasan, R. S., Pencina, M. J., Wolf, P. A., Cobain, M., Massaro, J. M., &amp; Kannel, W. B. (2008). General cardiovascular risk profile for use in primary care: The Framingham Heart Study. <i>Circulation, 117</i>(6), 743–753.
+            </li>
+            <li>
+              World Health Organization. (2007). <i>Prevention of cardiovascular disease: Guidelines for assessment and management of cardiovascular risk</i>. World Health Organization.
+            </li>
+            <li>
+              World Health Organization. (2007). <i>WHO/ISH risk prediction charts for 14 WHO epidemiological sub-regions</i>. World Health Organization.
+            </li>
+          </ol>
+        </section>
       </main>
     </div>;
   }
