@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X, LockKeyhole, HeartPulse, ClipboardList, CalendarDays } from 'lucide-react';
 import { calculatePrevent, PreventInput, PreventResult } from './preventCalculator';
 import type { LabRecord } from '../LabDataHomeScreen';
@@ -185,10 +185,6 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
     dm: input.dm as 0 | 1, smoking: input.smoking as 0 | 1,
     bptreat: input.bptreat as 0 | 1, statin: input.statin as 0 | 1,
   });
-  const idealResult = useMemo(() => result && submittedInput ? calculatePrevent({
-    ...submittedInput, tc: 170, hdl: 60, sbp: 110, bmi: 22, creatinine: submittedInput.sex === 1 ? 0.75 : 0.9,
-    dm: 0, smoking: 0, bptreat: 0, statin: 0,
-  }) : null, [result, submittedInput]);
 
   if (view === 'form') return (
     <div className="relative flex h-full flex-col overflow-hidden bg-[var(--bg-base-secondary)] font-sans">
@@ -238,8 +234,6 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
 
   if (view === 'result' && result && submittedInput) {
     const category = categoryFor(result.risk.ASCVD10);
-    const ideal = idealResult?.risk.CVD10 ?? 0;
-    const ratio = ideal > 0 ? result.risk.CVD10 / ideal : 1;
     const factors = [submittedInput.smoking ? '目前吸菸' : null, submittedInput.sbp >= 130 ? '血壓偏高' : null,
       submittedInput.tc >= 200 || submittedInput.hdl < (submittedInput.sex === 1 ? 50 : 40) ? '血脂待改善' : null,
       submittedInput.bmi >= 24 ? '體重管理' : null, submittedInput.dm ? '糖尿病管理' : null, result.egfr < 60 ? '腎功能追蹤' : null].filter(Boolean) as string[];
@@ -274,9 +268,6 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
           <div className={`rounded-[12px] p-4 ${toneClass}`}><p className="text-[20px] font-bold">{category.label}</p><p className="mt-1 text-[16px] font-bold">10 年 ASCVD 風險 {result.risk.ASCVD10.toFixed(2)}%</p></div>
           <div className="grid grid-cols-4 overflow-hidden rounded-[4px] text-center text-[12px] font-bold text-[var(--text-on-image)]"><span className="bg-[var(--bg-positive-default)] p-2">低風險</span><span className="bg-[var(--bg-warning-default)] p-2">臨界</span><span className="bg-[var(--bg-brand-default)] p-2">中度</span><span className="bg-[var(--bg-danger-default)] p-2">高風險</span></div>
           <p className="text-[14px] leading-[1.5] text-[var(--text-base-secondary)]">{category.description}</p>
-          <div><h3 className="mb-3 text-[16px] font-bold">與同齡理想指標者比較</h3><div className="space-y-3 text-[12px]">{[
-            ['您的 10 年總 CVD 風險', result.risk.CVD10, 'bg-[var(--bg-brand-default)]'], ['同齡理想指標者', ideal, 'bg-[var(--bg-positive-default)]']
-          ].map(([label, val, color]) => <div key={String(label)}><div className="mb-1 flex justify-between"><span>{label as string}</span><b>{Number(val).toFixed(1)}%</b></div><div className="h-3 rounded-full bg-[var(--bg-base-secondary)]"><div className={`h-3 rounded-full ${color}`} style={{ width: `${Math.max(4, Number(val) / Math.max(result.risk.CVD10, ideal, 1) * 100)}%` }} /></div></div>)}</div><p className="mt-3 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">您的風險約為同年齡、同性別且各項指標理想者的 {ratio.toFixed(1)} 倍。</p></div>
           <div><h3 className="mb-2 text-[16px] font-bold">健康建議</h3>{factors.length ? <div className="space-y-2">{factors.map((factor) => <div key={factor} className="rounded-[8px] border-l-4 border-[var(--border-brand-default)] bg-[var(--bg-brand-tertiary)] p-3"><p className="text-[14px] font-bold text-[var(--text-brand-on-tertiary)]">{factor}</p><p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">{FACTOR_ADVICE[factor] ?? '建議與醫師討論適合您的個人目標，並持續追蹤相關指標。'}</p></div>)}</div> : <div className="rounded-[8px] bg-[var(--bg-positive-tertiary)] p-3 text-[14px] text-[var(--text-positive-on-tertiary)]">目前主要風險因子控制良好，請繼續維持健康生活型態。</div>}</div>
           <p className="text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">本報告由規則式邏輯自動產生，僅供衛教參考，不構成醫療診斷或治療建議。</p>
         </section>
