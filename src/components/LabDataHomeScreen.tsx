@@ -20,7 +20,7 @@ export interface LabRecord {
 }
 
 export const formatLocalLabDate = (date: Date) =>
-  `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 
 export const createDefaultLabRecord = (now = new Date()): LabRecord => ({
   id: `default-lab-${now.getTime()}`,
@@ -203,9 +203,9 @@ export const LabDataHomeScreen: React.FC<LabDataHomeScreenProps> = ({ onBack, on
 
   // Helper to format date into "X 月 X 日"
   const formatDateTitle = (dateStr: string) => {
-    const match = dateStr.match(/\d{4}[\/-](\d{1,2})[\/-](\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
+    const match = dateStr.match(/\d{4}[\/-](\d{1,2})[\/-](\d{1,2})/);
     if (match) {
-      return `${match[1]} 月 ${match[2]} 日${match[3] ? ` ${String(match[3]).padStart(2, '0')}:${match[4]}` : ''}`;
+      return `${match[1]} 月 ${match[2]} 日`;
     }
     return dateStr;
   };

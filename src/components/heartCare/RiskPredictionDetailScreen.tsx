@@ -95,6 +95,15 @@ const YesNo = ({ label, name, value, onChange }: {
   </div>
 );
 
+const FACTOR_ADVICE: Record<string, string> = {
+  '目前吸菸': '戒菸是降低心血管風險最有效的單一行動：戒菸一年後，心血管疾病風險約可下降一半。',
+  '血壓偏高': '減少鹽分攝取、規律有氧運動、控制體重、充足睡眠皆有助血壓控制。',
+  '血脂待改善': '建議減少飽和脂肪與精緻食品，多攝取蔬果好油，規律運動有助提升好膽固醇。',
+  '體重管理': '建議規律運動與均衡飲食，體重每減少 5% 即可明顯改善血壓、血糖與血脂。',
+  '糖尿病管理': '建議規律服藥、監測血糖並控制醣類攝取，定期回診追蹤糖化血色素（HbA1c）。',
+  '腎功能追蹤': '建議控制血壓與血糖以減緩腎臟負擔，並定期監測腎功能，與醫師討論追蹤計畫。',
+};
+
 const categoryFor = (risk: number) => risk < 5
   ? { label: '低風險', tone: 'positive' as const, description: '目前屬於低風險（<5%）。持續規律運動、均衡飲食與不吸菸，是維持心血管健康的重要方式。' }
   : risk < 7.5
@@ -268,7 +277,7 @@ export const RiskPredictionDetailScreen: React.FC<Props> = ({ onBack, records, o
           <div><h3 className="mb-3 text-[16px] font-bold">與同齡理想指標者比較</h3><div className="space-y-3 text-[12px]">{[
             ['您的 10 年總 CVD 風險', result.risk.CVD10, 'bg-[var(--bg-brand-default)]'], ['同齡理想指標者', ideal, 'bg-[var(--bg-positive-default)]']
           ].map(([label, val, color]) => <div key={String(label)}><div className="mb-1 flex justify-between"><span>{label as string}</span><b>{Number(val).toFixed(1)}%</b></div><div className="h-3 rounded-full bg-[var(--bg-base-secondary)]"><div className={`h-3 rounded-full ${color}`} style={{ width: `${Math.max(4, Number(val) / Math.max(result.risk.CVD10, ideal, 1) * 100)}%` }} /></div></div>)}</div><p className="mt-3 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">您的風險約為同年齡、同性別且各項指標理想者的 {ratio.toFixed(1)} 倍。</p></div>
-          <div><h3 className="mb-2 text-[16px] font-bold">健康建議</h3>{factors.length ? <div className="space-y-2">{factors.map((factor) => <div key={factor} className="rounded-[8px] border-l-4 border-[var(--border-brand-default)] bg-[var(--bg-brand-tertiary)] p-3"><p className="text-[14px] font-bold text-[var(--text-brand-on-tertiary)]">{factor}</p><p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">建議以規律運動、均衡飲食與定期追蹤逐步改善，並與醫師討論適合您的個人目標。</p></div>)}</div> : <div className="rounded-[8px] bg-[var(--bg-positive-tertiary)] p-3 text-[14px] text-[var(--text-positive-on-tertiary)]">目前主要風險因子控制良好，請繼續維持健康生活型態。</div>}</div>
+          <div><h3 className="mb-2 text-[16px] font-bold">健康建議</h3>{factors.length ? <div className="space-y-2">{factors.map((factor) => <div key={factor} className="rounded-[8px] border-l-4 border-[var(--border-brand-default)] bg-[var(--bg-brand-tertiary)] p-3"><p className="text-[14px] font-bold text-[var(--text-brand-on-tertiary)]">{factor}</p><p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">{FACTOR_ADVICE[factor] ?? '建議與醫師討論適合您的個人目標，並持續追蹤相關指標。'}</p></div>)}</div> : <div className="rounded-[8px] bg-[var(--bg-positive-tertiary)] p-3 text-[14px] text-[var(--text-positive-on-tertiary)]">目前主要風險因子控制良好，請繼續維持健康生活型態。</div>}</div>
           <p className="text-[12px] leading-[1.5] text-[var(--text-base-secondary)]">本報告由規則式邏輯自動產生，僅供衛教參考，不構成醫療診斷或治療建議。</p>
         </section>
         <section aria-labelledby="cardiovascular-references" className="bg-[var(--bg-base-secondary)] px-4 py-5">

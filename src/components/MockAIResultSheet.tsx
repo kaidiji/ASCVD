@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MOCK_RECOGNIZED_LAB_ITEMS } from './mockLabRecognitionData';
 
 interface MockAIResultSheetProps {
   onClose: () => void;
   onRescan: () => void;
-  onConfirmAdd: () => void;
+  onConfirmAdd: (values: Record<string, string>) => void;
 }
 
 export const MockAIResultSheet: React.FC<MockAIResultSheetProps> = ({
@@ -15,6 +15,9 @@ export const MockAIResultSheet: React.FC<MockAIResultSheetProps> = ({
 }) => {
   // Items matching S__42344457_0
   const recognizedItems = MOCK_RECOGNIZED_LAB_ITEMS;
+  const [editedValues, setEditedValues] = useState<Record<string, string>>(
+    () => Object.fromEntries(recognizedItems.map((item) => [item.id, item.value])),
+  );
   return (
     <div className="absolute inset-0 z-50 bg-black/45 backdrop-blur-xs flex flex-col justify-end select-none animate-in fade-in duration-200">
       {/* Dimmed background tap to close */}
@@ -44,9 +47,13 @@ export const MockAIResultSheet: React.FC<MockAIResultSheetProps> = ({
 
               {/* Value Input Box & Unit */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <div className="w-16 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-sm font-bold text-gray-600 shadow-2xs">
-                  {item.value}
-                </div>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={editedValues[item.id] ?? ''}
+                  onChange={(e) => setEditedValues((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                  className="w-16 h-8 rounded-lg border border-gray-200 bg-white text-center text-sm font-bold text-gray-800 shadow-2xs focus:outline-none focus:border-[#F26522]"
+                />
                 <span className="text-xs text-gray-600 font-bold w-12 text-right">
                   {item.unit}
                 </span>
@@ -72,7 +79,7 @@ export const MockAIResultSheet: React.FC<MockAIResultSheetProps> = ({
             </button>
 
             <button
-              onClick={onConfirmAdd}
+              onClick={() => onConfirmAdd(editedValues)}
               className="bg-[#F26522] hover:bg-[#d95517] active:scale-95 text-white font-black text-sm px-6 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
             >
               新增

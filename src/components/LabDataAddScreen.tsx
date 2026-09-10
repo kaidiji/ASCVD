@@ -6,7 +6,6 @@ import { MockGalleryModal } from './MockGalleryModal';
 import { MockFilesModal } from './MockFilesModal';
 import { MockAIScanningModal } from './MockAIScanningModal';
 import { MockAIResultSheet } from './MockAIResultSheet';
-import { MOCK_RECOGNIZED_LAB_ITEMS } from './mockLabRecognitionData';
 
 interface LabDataAddScreenProps {
   onBack: () => void;
@@ -37,7 +36,7 @@ export const LabDataAddScreen: React.FC<LabDataAddScreenProps> = ({ onBack, onSa
   const [scanSuccessMessage, setScanSuccessMessage] = useState<string | null>(null);
   const aiResultSubmittedRef = useRef(false);
 
-  const [dateValue, setDateValue] = useState<string>('2026/9/4 16:10');
+  const [dateValue, setDateValue] = useState<string>('2026/9/4');
   const [activeSelectModal, setActiveSelectModal] = useState<{ id: string; name: string; options: string[] } | null>(null);
 
   // Form values state
@@ -188,31 +187,28 @@ export const LabDataAddScreen: React.FC<LabDataAddScreenProps> = ({ onBack, onSa
   };
 
   // Step 5: Confirm Add from AI Result Sheet -> Fill fields (S__42344458_0) & show survey (S__42344459_0)
-  const handleConfirmAIResult = () => {
+  const handleConfirmAIResult = (editedValues: Record<string, string>) => {
     if (aiResultSubmittedRef.current) return;
     aiResultSubmittedRef.current = true;
 
-    const recognizedValues = Object.fromEntries(
-      MOCK_RECOGNIZED_LAB_ITEMS.map((item) => [item.id, item.value]),
-    );
     const now = new Date();
     const recognizedDate = formatLocalLabDate(now);
 
-    // Persist the recognition result immediately; do not depend on async form state.
+    // Persist the recognition result (including any manual adjustments) immediately.
     onSave({
       id: `ai-lab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       date: formatLocalLabDate(new Date()),
       createdAt: now.getTime(),
       source: 'ai',
-      itemCount: Object.keys(recognizedValues).length,
-      data: recognizedValues,
+      itemCount: Object.keys(editedValues).length,
+      data: editedValues,
     });
     setShowAIResultSheet(false);
 
     // Fill the same values shown in the recognition result sheet.
     setFormValues((prev) => ({
       ...prev,
-      ...Object.fromEntries(MOCK_RECOGNIZED_LAB_ITEMS.map((item) => [item.id, item.value])),
+      ...editedValues,
     }));
 
     setDateValue(recognizedDate);
@@ -255,7 +251,7 @@ export const LabDataAddScreen: React.FC<LabDataAddScreenProps> = ({ onBack, onSa
           onClick={() => setShowPhotoSheet(true)}
           className="flex items-center gap-1 text-[#F26522] hover:opacity-85 font-black text-sm px-1 py-1 cursor-pointer transition-opacity"
         >
-          <span>掃描辨識</span>
+          <span>AI辨識</span>
           <ScanLine className="w-4 h-4 stroke-[2.4]" />
         </button>
       </div>
@@ -400,7 +396,7 @@ export const LabDataAddScreen: React.FC<LabDataAddScreenProps> = ({ onBack, onSa
 
           {/* Modal Container: Solidly docked at bottom, static and non-movable */}
           <div className="relative z-10 bg-white rounded-t-2xl shadow-2xl pt-6 pb-8 px-5 select-none pointer-events-auto shrink-0">
-            <h2 className="text-lg font-black text-gray-900 tracking-tight">請選擇照片</h2>
+            <h2 className="text-lg font-black text-gray-900 tracking-tight">請選擇資料來源</h2>
             <p className="text-xs text-gray-500 mt-1 mb-5 leading-relaxed">
               提醒：掃描時若有其他數字、反光、太遠或太暗皆可能影響掃描結果。
             </p>
@@ -447,7 +443,7 @@ export const LabDataAddScreen: React.FC<LabDataAddScreenProps> = ({ onBack, onSa
               >
                 <FolderArchive className="w-8 h-8 text-[#F26522] stroke-[1.8]" />
                 <span className="text-base font-black text-[#F26522] tracking-wide">
-                  選取檔案
+                  上傳報告
                 </span>
               </button>
               {/* Right side left empty */}
